@@ -2,9 +2,9 @@
 
 A from-scratch HR system: Laravel API + PostgreSQL backend, a React (Vite) web app, and a React Native (Expo) mobile app, sharing types and an API client through a single npm-workspaces monorepo.
 
-Covers: onboarding, an applicant tracking system (deliberately decoupled — see `HireCandidateService` below), compensation management with effective-dated pay history, document storage, an employee notes/timeline, and time-off tracking. The data model treats transfers and rehires as first-class, non-destructive events (see **Data model notes** below) since the business has high turnover, frequent field transfers, and frequent rehires.
+Covers: onboarding and offboarding (mirrored workflow-task models, with final-payout calculation), an applicant tracking system (deliberately decoupled — see `HireCandidateService` below, with rehire detection via email/name+DOB match), compensation management with effective-dated pay history and per-location minimum-wage validation, document storage with e-signature acknowledgment, an employee notes/timeline, time-off tracking, in-app + email notifications, banking-info tokenization, background-check/E-Verify tracking, bulk transfer, CSV data import, turnover reporting, and a dashboard. The e-signature, background-check, and banking integrations are all built as swappable provider interfaces with a `Fake*Provider` bound for local use — swapping in a real SDK later is a single binding change, not a rewrite (see `AppServiceProvider::register()`). The data model treats transfers and rehires as first-class, non-destructive events (see **Data model notes** below) since the business has high turnover, frequent field transfers, and frequent rehires.
 
-This is a draft, built to be extended as requirements firm up — not a finished product.
+This is a draft MVP with its full first-iteration spec implemented (see [docs/SPEC.md](docs/SPEC.md)) and a working automated test suite — not a finished product. Payroll gross-to-net calculation, SSO/SAML, and a few other explicitly-deferred items remain open; see **What's not built yet** below.
 
 ## Repo layout
 
@@ -88,32 +88,24 @@ The web app's Vite dev server proxies `/api` and `/sanctum` to `http://localhost
 
 ## Verification
 
-**Backend — verified working on this machine:**
+**Full automated regression — passing on this machine right now:**
 ```bash
-php artisan test           # 17/17 Pest feature tests passing, against a real Postgres db —
-                            # covers rehire-creates-new-employment, transfer-preserves-history,
-                            # overlapping-compensation-rejected (DB constraint), and role-boundary auth
-php artisan migrate --seed # done — all 14 migrations + 3 seeders ran clean
-php artisan serve          # done — running on :8000, /api/v1/auth/me correctly returns 401 unauthenticated
+npm run test:regression   # one command: Pest → Vitest → Playwright, see docs/TEST_PLAN.md
 ```
+- **Backend**: 52 Pest feature tests / 137 assertions, against a real Postgres db — covers every module (employee core, compensation + wage compliance, time off, onboarding/offboarding, ATS, banking/signature/background-check providers, admin CRUD, data import, dashboard/reporting, auth + password reset + rate limiting) plus role-boundary checks throughout.
+- **Frontend components**: Vitest + Testing Library.
+- **End-to-end**: 25 Playwright scenarios driving the real browser UI against the real backend — one journey per major flow (hire, transfer, rehire, terminate → offboard, raise + wage-compliance rejection, time-off submit/approve, document sign, ATS full pipeline, bulk transfer, admin CRUD, CSV import, dashboard/reports, role boundaries). See [docs/TEST_PLAN.md](docs/TEST_PLAN.md) for what each one covers and the process for adding more.
 
-**Web app — verified working on this machine:**
-```bash
-npm install                                    # done — no errors
-npm run --workspace=apps/web typecheck          # done — passes
-npm run --workspace=apps/web test               # done — passing
-npm run dev:web                                 # done — loads at localhost:5173
-```
+**Manually walked in the browser**: the full ATS-hire-to-timeline flow — create requisition → add candidate → hire → confirm the resulting employee record, initial compensation, auto-started onboarding workflow, and auto-run background/E-Verify checks all show up correctly on the Timeline and Onboarding tabs. This same journey caught a real backend bug (see below) before it was automated as `ats-full-pipeline.spec.ts`.
 
-**Login — verified end-to-end in the browser**: signed in as `admin@example.com` through the actual running UI, and the employee list rendered the real seeded records (Jamie Rivera, Morgan Lee, Casey Nguyen) fetched live from Postgres through the API.
-
-Two real bugs were caught and fixed by this end-to-end pass (worth knowing about, since they're the kind of thing that only shows up once you run the real thing rather than just reading the code):
-- **CSRF header wasn't attached.** Sanctum's SPA auth needs the `XSRF-TOKEN` cookie (set by `/sanctum/csrf-cookie`) echoed back as an `X-XSRF-TOKEN` request header on every state-changing request. The original `api-client` fetched the cookie but never read it back — fixed in `packages/api-client/src/index.ts`.
-- **Unauthenticated API requests without an `Accept: application/json` header 500'd instead of 401'ing**, because Laravel's default `Authenticate` middleware tried to redirect to a named `login` route that doesn't exist in a JSON-only API. Fixed via `Authenticate::redirectUsing(fn () => null)` in `AppServiceProvider`. Doesn't affect the real frontends (they always send `Accept: application/json`), but matters for anything hitting the API directly (curl, health checks, Postman).
+**Real bugs caught and fixed by end-to-end testing** (worth knowing about — none of these were visible from unit/feature tests alone, since those use tidy, deliberately-ordered inputs):
+- A model (`ApplicationStageHistory`) whose table name didn't match Eloquent's default pluralization guess — 500'd the moment a real candidate-creation request exercised it.
+- `assignments.position_id` is a NOT NULL database column, reachable through a UI form (create requisition → hire) that didn't collect it — 500'd on hire. Fixed by requiring a position on requisition creation, matching the constraint's intent.
+- Out-of-order API responses clobbering newer UI state when a user acted quickly, in the employee list, time-off list, requisition detail, and employee detail pages — fixed with a request-sequencing guard.
+- The ATS "former employee" badge was being set to `true` for *every* hired candidate, not just genuine rehires, because the hire flow reused the same `linked_person_id` column that pre-hire rehire-detection uses.
+- Two `AuthController::logout()` crashes (a `TransientToken` that isn't a real Sanctum token instance; a bearer-token request with no session to invalidate), and a login rate-limiter that counted successful logins against the same bucket as failures.
 
 **Mobile app — scaffolded but not installed/run in this environment** (no simulator/device available here). To verify: `npm run dev:mobile`, scan the QR with Expo Go, log in as `casey.nguyen@example.com`, and confirm the Profile / Time Off tabs work; log in as `people.manager@example.com` and confirm the Team tab shows pending approvals.
-
-**Not yet walked end-to-end**: the full ATS flow (create requisition → add candidate → move through pipeline → hire) and confirming the resulting employee's timeline/onboarding/compensation records — the pieces are all unit/feature-tested individually but no one has clicked through that full journey in the UI yet.
 
 ## Data model notes
 
@@ -122,6 +114,25 @@ Two real bugs were caught and fixed by this end-to-end pass (worth knowing about
 - **`employee_events`** is a single, append-only timeline table that every module writes into (hires, transfers, comp changes, notes, document uploads, time-off decisions), so an employee's whole history reads as one chronological feed.
 - **ATS is intentionally decoupled**: `App\Domain\ATS\Services\HireCandidateService` is the *only* code path that writes ATS data into core employee records. If a third-party ATS replaces this module later, only that one integration point needs to change.
 
+## Testing & regression
+
+See [docs/TEST_PLAN.md](docs/TEST_PLAN.md) for the full breakdown of what's covered, how to run each layer individually, and the process to follow on every future change (run `npm run test:regression` before and after, add a test for every new feature or fix). Short version:
+
+```bash
+npm run test:regression   # everything — needs the backend running separately (php artisan serve)
+npm run test:api          # Pest only
+npm run test              # Vitest only (all workspaces)
+npm run test:e2e          # Playwright only — needs the backend running
+```
+
+This repo is git-initialized (`git log` for history). There's no remote configured yet — set one up when you're ready to collaborate or back this up off the local machine.
+
 ## What's not built yet
 
-This is a draft. Known gaps to revisit as requirements solidify: multi-step time-off approval chains, real accrual scheduling (the ledger/balance mechanism is in place but nothing runs it on a cron yet), S3 document storage (disk is pre-wired, not enabled), push notifications on mobile, and an admin UI for managing onboarding templates/time-off policies (currently seeded, not editable in the UI).
+This is a draft MVP, not a finished product. Explicitly deferred per [docs/SPEC.md](docs/SPEC.md) — do not assume these are oversights:
+- **Payroll gross-to-net calculation** (tax withholding, pay stub/W-2 generation) — SPEC.md calls this out as its own major phase, an order of magnitude bigger than everything else here combined.
+- **SSO/SAML integration** — the auth layer is kept pluggable, but nothing beyond Sanctum email/password is built.
+- **EEO-1 demographic capture, timeline/event archiving policy, WCAG certification** — open questions in SPEC.md §8, not decisions to act on yet.
+- **Multi-tenancy, mobile offline support, i18n, SMS/push notifications, multi-level approval chains, fine-grained role permissions** — explicitly out of scope for this phase.
+
+Smaller known gaps: real accrual scheduling (the time-off ledger/balance mechanism is in place but nothing runs it on a cron yet), S3 document storage (disk is pre-wired, not enabled), mobile app has no E2E coverage yet (see docs/TEST_PLAN.md §5).

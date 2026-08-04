@@ -45,9 +45,12 @@ class HireCandidateService
                     'phone' => $candidate->phone,
                 ]);
 
-            if (! $candidate->linked_person_id) {
-                $candidate->update(['linked_person_id' => $person->id]);
-            }
+            // Deliberately NOT writing $person back onto candidate.linked_person_id
+            // here: that column means "matched an existing person BEFORE hire" and
+            // drives the ApplicationResource "former employee" badge. Every hire
+            // resolves to *some* Person (new or existing), so overwriting it here
+            // would mark every hired candidate as a former employee, not just
+            // genuine rehires.
 
             $employment = $person->employments()->create([
                 'employee_number' => $data['employee_number'],

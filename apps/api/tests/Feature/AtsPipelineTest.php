@@ -125,3 +125,56 @@ it('hires a candidate straight through, using the requisition position for the n
     $employment = \App\Domain\Employee\Models\Employment::with('currentAssignment')->findOrFail($employmentId);
     expect($employment->currentAssignment->position_id)->toBe($position->id);
 });
+
+it('does not mark a brand-new hire as a former employee, only a genuine email-matched rehire', function () {
+    atsAdmin();
+
+    $department = Department::factory()->create();
+    $location = Location::factory()->create();
+    $position = Position::factory()->create(['department_id' => $department->id]);
+    PipelineStage::first() ?? PipelineStage::factory()->create(['order' => 1]);
+
+    $requisition = JobRequisition::factory()->create([
+        'department_id' => $department->id,
+        'location_id' => $location->id,
+        'position_id' => $position->id,
+    ]);
+
+    $newHire = $this->postJson('/api/v1/ats/candidates', [
+        'first_name' => 'Taylor',
+        'last_name' => 'Novak',
+        'email' => 'taylor.novak+brandnew@example.com',
+        'requisition_id' => $requisition->id,
+    ])->assertCreated();
+
+    expect($newHire->json('data.candidate.is_former_employee'))->toBeFalse();
+
+    $this->postJson("/api/v1/ats/applications/{$newHire->json('data.id')}/hire", [
+        'employee_number' => 'E-ATS-HIRE-2',
+        'hire_date' => now()->toDateString(),
+        'employment_type' => 'hourly',
+        'pay_type' => 'hourly',
+        'rate_amount' => 20,
+        'pay_frequency' => 'biweekly',
+    ])->assertCreated();
+
+    // Re-fetch through the same list endpoint the UI uses, post-hire.
+    $afterHire = $this->getJson("/api/v1/ats/applications?requisition_id={$requisition->id}")->assertOk();
+    expect($afterHire->json('data.0.candidate.is_former_employee'))->toBeFalse();
+
+    // A second candidate re-applying with an email that matches an already-
+    // existing person IS a genuine former employee, and should say so
+    // immediately at creation time — before any hire happens.
+    $existingPerson = \App\Domain\Employee\Models\Person::factory()->create([
+        'personal_email' => 'returning.person@example.com',
+    ]);
+
+    $rehireApplication = $this->postJson('/api/v1/ats/candidates', [
+        'first_name' => $existingPerson->first_name,
+        'last_name' => $existingPerson->last_name,
+        'email' => 'returning.person@example.com',
+        'requisition_id' => $requisition->id,
+    ])->assertCreated();
+
+    expect($rehireApplication->json('data.candidate.is_former_employee'))->toBeTrue();
+});
