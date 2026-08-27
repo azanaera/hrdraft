@@ -59,5 +59,16 @@ class AppServiceProvider extends ServiceProvider
                 ], 429);
             });
         });
+
+        // General ceiling on every other authenticated endpoint — high enough
+        // that a real HR admin doing a burst of legitimate work (bulk
+        // transfer, CSV import, rapidly clicking through employee records)
+        // never notices it, but low enough to blunt a runaway client or a
+        // compromised token being hammered indefinitely. Keyed by user id
+        // (falls back to IP, which shouldn't happen here since this only
+        // applies to routes already behind auth:sanctum).
+        RateLimiter::for('api', function ($request) {
+            return Limit::perMinute(300)->by($request->user()?->id ?: $request->ip());
+        });
     }
 }

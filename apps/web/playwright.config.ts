@@ -11,7 +11,9 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 0,
-  reporter: [['list']],
+  // 'html' always writes playwright-report/ (never auto-opens) so CI has
+  // something to upload as an artifact on failure; 'list' is the console output.
+  reporter: [['list'], ['html', { open: 'never' }]],
   timeout: 30_000,
   use: {
     baseURL: 'http://localhost:5173',

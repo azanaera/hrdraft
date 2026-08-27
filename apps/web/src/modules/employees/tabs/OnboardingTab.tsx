@@ -47,6 +47,10 @@ export function OnboardingTab({ employmentId }: { employmentId: number }) {
 
       <div className="card">
         <h3>Background &amp; eligibility checks</h3>
+        <p className="notice small">
+          These statuses come from a placeholder provider and are <strong>not authoritative</strong>. HR must still run the real
+          background check and E-Verify process outside this system until a real provider is connected.
+        </p>
         {checks.map((c) => (
           <div key={c.check_type} className="row">
             <span>{c.check_type === 'e_verify' ? 'E-Verify (I-9)' : 'Background check'}</span>

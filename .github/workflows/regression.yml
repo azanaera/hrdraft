@@ -1,0 +1,100 @@
+name: Regression
+
+# Gates every push and PR with the same suite documented in
+# docs/TEST_PLAN.md: Pest -> Vitest -> Playwright, in that order.
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: sail
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: hris
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: pdo_pgsql, pgsql, mbstring, fileinfo, curl, openssl
+          coverage: none
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Create the second Postgres database (Pest uses hris_testing, separate from the dev DB)
+        run: PGPASSWORD=password psql -h 127.0.0.1 -U sail -d hris -c "CREATE DATABASE hris_testing;"
+
+      - name: Install PHP dependencies
+        working-directory: apps/api
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Configure backend environment
+        working-directory: apps/api
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          sed -i "s/^DB_HOST=.*/DB_HOST=127.0.0.1/" .env
+          sed -i "s/^APP_URL=.*/APP_URL=http:\/\/localhost:8000/" .env
+
+      - name: Migrate + seed the dev database (used by Playwright)
+        working-directory: apps/api
+        run: php artisan migrate --seed --force
+
+      - name: Install JS dependencies
+        run: npm install
+
+      - name: Install Playwright browsers
+        working-directory: apps/web
+        run: npx playwright install --with-deps chromium
+
+      - name: Start backend
+        working-directory: apps/api
+        run: nohup php artisan serve --port=8000 > /tmp/artisan-serve.log 2>&1 &
+
+      - name: Wait for backend to be ready
+        run: |
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8000/sanctum/csrf-cookie -o /dev/null && exit 0
+            sleep 1
+          done
+          echo "Backend never came up:" && cat /tmp/artisan-serve.log && exit 1
+
+      - name: Run regression suite (Pest -> Vitest -> Playwright)
+        run: npm run test:regression
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
+
+      - name: Upload backend log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: laravel-log
+          path: apps/api/storage/logs/laravel.log
+          retention-days: 7

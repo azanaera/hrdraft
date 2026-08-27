@@ -135,4 +135,8 @@ This is a draft MVP, not a finished product. Explicitly deferred per [docs/SPEC.
 - **EEO-1 demographic capture, timeline/event archiving policy, WCAG certification** — open questions in SPEC.md §8, not decisions to act on yet.
 - **Multi-tenancy, mobile offline support, i18n, SMS/push notifications, multi-level approval chains, fine-grained role permissions** — explicitly out of scope for this phase.
 
-Smaller known gaps: real accrual scheduling (the time-off ledger/balance mechanism is in place but nothing runs it on a cron yet), S3 document storage (disk is pre-wired, not enabled), mobile app has no E2E coverage yet (see docs/TEST_PLAN.md §5).
+Smaller known gaps: S3 document storage (disk is pre-wired, not enabled — needs real `AWS_*` credentials), mobile app has no E2E coverage yet (see docs/TEST_PLAN.md §5).
+
+## Pilot readiness
+
+A separate readiness review scoped an **internal pilot** (real employees, real HR workflows, synthetic banking/payroll) — see [docs/PILOT_READINESS.md](docs/PILOT_READINESS.md) for the full decision record. That pass built: real time-off accrual scheduling (`time-off:accrue`, see `routes/console.php`), a general API rate limit beyond login, Sentry error-monitoring wiring (opt-in via `SENTRY_LARAVEL_DSN`), a CI pipeline (`.github/workflows/regression.yml`, needs a GitHub remote to run), and in-UI compliance disclaimers on the fake e-signature and background-check flows. What still needs a human (hosting choice, S3 bucket, Sentry account, GitHub remote) is listed there, not done unilaterally.

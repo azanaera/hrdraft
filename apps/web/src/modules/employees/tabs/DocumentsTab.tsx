@@ -55,6 +55,11 @@ export function DocumentsTab({ employmentId }: { employmentId: number }) {
 
   return (
     <div>
+      <p className="notice small">
+        Signatures collected here use a placeholder e-signature flow and are <strong>not legally binding</strong>. For I-9 forms
+        specifically, use the existing paper process — do not rely on the in-system "Sign" button for I-9.
+      </p>
+
       <div className="card form-grid">
         <label>
           Category
@@ -95,7 +100,9 @@ export function DocumentsTab({ employmentId }: { employmentId: number }) {
               <td>v{d.current_version?.version_number ?? '—'}</td>
               <td>{d.current_version ? new Date(d.current_version.uploaded_at).toLocaleDateString() : '—'}</td>
               <td>
-                {!d.requires_signature ? (
+                {d.category === 'I-9' ? (
+                  <span className="muted small">use paper process</span>
+                ) : !d.requires_signature ? (
                   <span className="muted small">n/a</span>
                 ) : signedIds.includes(d.id) ? (
                   <span className="badge badge-approved">signed</span>

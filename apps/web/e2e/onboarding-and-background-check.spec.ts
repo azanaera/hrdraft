@@ -17,9 +17,11 @@ test('onboarding auto-starts on hire, background checks resolve, and completing 
   await page.getByRole('button', { name: 'Onboarding' }).click();
 
   await expect(page.getByText('Standard Hourly Onboarding')).toBeVisible();
-  await expect(page.getByText(/e-verify/i)).toBeVisible();
 
-  const checkBadges = page.locator('.card', { hasText: 'Background & eligibility checks' }).locator('.badge');
+  const checksCard = page.locator('.card', { hasText: 'Background & eligibility checks' });
+  await expect(checksCard.getByText('E-Verify (I-9)')).toBeVisible();
+
+  const checkBadges = checksCard.locator('.badge');
   await expect(checkBadges).toHaveCount(2);
   for (const badge of await checkBadges.all()) {
     await expect(badge).toHaveText('clear');

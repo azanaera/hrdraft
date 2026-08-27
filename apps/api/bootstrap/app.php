@@ -37,4 +37,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (\DomainException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         });
+
+        // No-ops when SENTRY_LARAVEL_DSN isn't set (see config/sentry.php) —
+        // safe to leave registered in every environment, including local dev
+        // and CI, where nobody's created a Sentry project yet.
+        \Sentry\Laravel\Integration::handles($exceptions);
     })->create();

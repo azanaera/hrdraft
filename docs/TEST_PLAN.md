@@ -103,7 +103,8 @@ One journey per file, `apps/web/e2e/`:
 - `TurnoverReportTest.php` — termination reflected in the summary, role boundary
 - `AdminCrudTest.php` — admin CRUD endpoints
 - `PasswordResetTest.php` — same response regardless of whether the email is registered (no user enumeration), valid-token reset revokes existing tokens, invalid token rejected
-- `RateLimitTest.php` — lockout after 5 failed attempts/minute
+- `RateLimitTest.php` — login lockout after 5 failed attempts/minute, general authenticated-API throttle (300 req/min per user)
+- `TimeOffAccrualTest.php` — first accrual posts once a period has elapsed since hire, no double-accrual before the next period, accrual respects the policy's max-balance cap, `accrual_method: none` never accrues, terminated employments are skipped, `--dry-run` reports without writing
 - `AtsPipelineTest.php` — candidate creation seeds an initial stage-history row, moving stages closes the old row and opens a new one, a requisition without a position is rejected at validation (not a 500 at hire time), hiring uses the requisition's position for the new assignment
 
 ## 5. What isn't automated, and why

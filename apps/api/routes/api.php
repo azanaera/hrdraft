@@ -41,7 +41,7 @@ Route::post('/v1/auth/mobile-login', [AuthController::class, 'mobileLogin']);
 Route::post('/v1/auth/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:login');
 Route::post('/v1/auth/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:login');
 
-Route::middleware(['auth:sanctum', 'active.employment'])->prefix('v1')->group(function () {
+Route::middleware(['auth:sanctum', 'active.employment', 'throttle:api'])->prefix('v1')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
 
