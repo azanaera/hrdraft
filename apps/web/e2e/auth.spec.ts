@@ -26,7 +26,13 @@ test.describe('Authentication', () => {
     await page.getByLabel('Email').fill(DEMO_USERS.admin);
     await page.getByRole('button', { name: /send reset link/i }).click();
 
-    await expect(page.getByText(/reset link has been sent/i)).toBeVisible();
+    // Generous timeout: this is the first request in the whole run that
+    // renders a Laravel notification mail (Blade/Markdown mail templates
+    // compile to disk on first use per process), and that cold-compile cost
+    // stacks with general load partway through a long suite — the default
+    // 5s assertion timeout has flaked on this specific step under a full
+    // regression run, even though it's never slow in isolation.
+    await expect(page.getByText(/reset link has been sent/i)).toBeVisible({ timeout: 15_000 });
   });
 
   test('locks out login after repeated failed attempts', async ({ page }) => {

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { DEMO_USERS, loginAs } from './helpers';
+import { DEMO_USERS, loginAs, logout } from './helpers';
 
 async function submitQuickRequest(page: import('@playwright/test').Page) {
   await page.goto('/time-off');
@@ -21,7 +21,12 @@ test('employee submits a time off request and their manager approves it', async 
   await expect(rows).toHaveCount(before + 1);
   await expect(rows.first().getByText('pending')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Log out' }).click();
+  // Wait for the logout redirect to actually land on /login before calling
+  // loginAs() again — loginAs() itself checks "am I already logged in" by
+  // looking for a visible Log-out button, and on a slower runner (CI) that
+  // check can race the still-in-flight logout redirect, targeting a button
+  // that's mid-navigation and gets detached from the DOM out from under it.
+  await logout(page);
 
   await loginAs(page, DEMO_USERS.peopleManager);
   await page.goto('/time-off');
