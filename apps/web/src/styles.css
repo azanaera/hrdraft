@@ -1,21 +1,15 @@
-:root {
-  --primary: #2454ff;
-  --border: #e2e6ef;
-  --surface-muted: #f4f6fb;
-  --text-muted: #6b7280;
-  color-scheme: light dark;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  background: var(--surface-muted);
-  color: #111827;
-}
+/*
+ * This app's components use a small set of semantic class names
+ * (.card, .badge, .data-table, .filter-bar, .tabs/.tab, .form-grid, ...)
+ * defined here. Rather than rewrite ~28 component files' markup to use
+ * Bootstrap's real card-body/nav-tabs/form-control structure directly,
+ * this stylesheet re-implements those semantic classes using Hando's
+ * actual design tokens (colors, radii, shadows, font) from
+ * /hando/assets/css/app.min.css, which loads before this file — see
+ * docs/HANDO_TEMPLATE.md. Bootstrap's own classes (.btn, .badge,
+ * .dropdown-menu, .nav-link, .tp-link, .form-control used directly in
+ * Layout.tsx and rebuilt pages) are left alone; nothing here overrides them.
+ */
 
 .center-screen {
   min-height: 100vh;
@@ -31,57 +25,95 @@ body {
   gap: 12px;
 }
 
+/* Our components put content directly inside .card without Bootstrap's
+   nested .card-body — Bootstrap's own .card has no padding of its own
+   (only .card-body does), so add it here to match Hando's card-body spacer. */
 .card {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 20px;
+  padding: 1.2rem;
+  margin-bottom: 1.2rem;
 }
 
 label {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--bs-body-color);
 }
 
 input,
 select,
 textarea {
   font: inherit;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  padding: 0.47rem 0.665rem;
+  font-size: 0.875rem;
+  color: var(--bs-body-color);
+  background-color: var(--bs-secondary-bg);
+  border: var(--bs-border-width) solid var(--bs-gray-400);
+  border-radius: 0.325rem;
 }
 
-button {
-  background: var(--primary);
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--bs-primary);
+  box-shadow: 0 0 0 0.2rem rgba(16, 141, 255, 0.15);
+}
+
+/* Bare <button> elements (no .btn class) styled to match .btn.btn-primary.
+   Every selector here is wrapped in :where() so it contributes ZERO
+   specificity — any class-based rule always wins, including our own
+   structural classes below (.tab, .tp-link, etc.) that also happen to be
+   <button> elements. A plain `button:hover { background: X }` rule would
+   otherwise beat a plain `.tab { background: none }` rule on hover, since
+   pseudo-classes count toward specificity the same as a real class — that's
+   a real bug this shipped with initially (tab buttons went solid blue on
+   hover, hiding their label) before switching to :where(). */
+:where(button) {
+  background: var(--bs-primary);
   color: #fff;
   border: none;
-  border-radius: 6px;
-  padding: 9px 16px;
+  border-radius: 0.325rem;
+  padding: 0.5rem 1rem;
   font-weight: 600;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 0.875rem;
+  transition: background-color 0.15s ease-in-out;
 }
 
-button.secondary {
+:where(button:hover) {
+  background: #0e7fe6;
+}
+
+:where(button.secondary) {
   background: transparent;
-  color: var(--primary);
-  border: 1px solid var(--primary);
+  color: var(--bs-primary);
+  border: 1px solid var(--bs-border-color);
 }
 
-button.danger {
-  background: #dc2626;
+:where(button.secondary:hover) {
+  background: var(--bs-tertiary-bg);
 }
 
-button.secondary.danger {
+:where(button.danger) {
+  background: var(--bs-danger);
+}
+
+:where(button.danger:hover) {
+  background: #d81f5c;
+}
+
+:where(button.secondary.danger) {
   background: transparent;
-  color: #dc2626;
-  border: 1px solid #dc2626;
+  color: var(--bs-danger);
+  border: 1px solid var(--bs-danger);
+}
+
+:where(button:disabled) {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .row {
@@ -89,7 +121,7 @@ button.secondary.danger {
   justify-content: space-between;
   align-items: center;
   padding: 6px 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--bs-border-color);
 }
 
 .row:last-child {
@@ -102,80 +134,20 @@ button.secondary.danger {
 }
 
 button.small {
-  padding: 4px 10px;
-  font-size: 12px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
   margin-right: 6px;
 }
 
 .button {
   display: inline-block;
-  background: var(--primary);
+  background: var(--bs-primary);
   color: #fff;
-  padding: 9px 16px;
-  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  border-radius: 0.325rem;
   text-decoration: none;
   font-weight: 600;
-  font-size: 14px;
-}
-
-.app-shell {
-  display: flex;
-  min-height: 100vh;
-}
-
-.sidebar {
-  width: 220px;
-  background: #111827;
-  color: #fff;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.brand {
-  font-weight: 800;
-  font-size: 20px;
-}
-
-.sidebar nav {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex: 1;
-}
-
-.sidebar nav a {
-  color: #d1d5db;
-  text-decoration: none;
-  padding: 8px 10px;
-  border-radius: 6px;
-}
-
-.sidebar nav a.active {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-}
-
-.user-card {
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-  padding-top: 16px;
-  font-size: 13px;
-}
-
-.user-name {
-  font-weight: 700;
-}
-
-.user-role {
-  color: #9ca3af;
-  margin-bottom: 10px;
-}
-
-.content {
-  flex: 1;
-  padding: 32px;
-  max-width: 1100px;
+  font-size: 0.875rem;
 }
 
 .page-header {
@@ -188,85 +160,95 @@ button.small {
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  background: var(--bs-card-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.325rem;
   overflow: hidden;
 }
 
 .data-table th,
 .data-table td {
   text-align: left;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
-  font-size: 14px;
+  padding: 0.65rem 0.9rem;
+  border-bottom: 1px solid var(--bs-border-color);
+  font-size: 0.875rem;
 }
 
 .data-table th {
-  background: var(--surface-muted);
+  background: var(--bs-tertiary-bg);
   font-weight: 700;
-  font-size: 12px;
+  font-size: 0.6875rem;
   text-transform: uppercase;
-  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  color: var(--bs-body-color);
+  opacity: 0.8;
 }
 
+.data-table tbody tr:hover td {
+  background: var(--bs-tertiary-bg);
+}
+
+/* Bootstrap's own subtle-badge treatment (theme-aware CSS vars), applied
+   to our existing status classNames instead of Bootstrap's bg-x-subtle. */
 .badge {
   display: inline-block;
-  padding: 2px 8px;
-  border-radius: 100px;
-  font-size: 12px;
+  padding: 0.2rem 0.65rem;
+  border-radius: 50rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  background: #e5e7eb;
-  color: #374151;
+  background: var(--bs-secondary-bg-subtle, #f0f4f7);
+  color: var(--bs-secondary-text-emphasis, #4a5a6b);
 }
 
 .badge-active,
 .badge-approved,
 .badge-open,
 .badge-hired {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--bs-success-bg-subtle);
+  color: var(--bs-success-text-emphasis);
 }
 
 .badge-terminated,
 .badge-denied,
 .badge-rejected,
 .badge-closed {
-  background: #fee2e2;
-  color: #991b1b;
+  background: var(--bs-danger-bg-subtle);
+  color: var(--bs-danger-text-emphasis);
 }
 
 .badge-pending,
 .badge-draft {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--bs-warning-bg-subtle);
+  color: var(--bs-warning-text-emphasis);
 }
 
 .badge-info {
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--bs-info-bg-subtle);
+  color: var(--bs-info-text-emphasis);
 }
 
 .tabs {
   display: flex;
-  gap: 4px;
+  gap: 2px;
   margin-bottom: 16px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--bs-border-color);
 }
 
 .tab {
   background: none;
-  color: var(--text-muted);
+  color: var(--bs-body-color);
   border: none;
   border-bottom: 2px solid transparent;
   border-radius: 0;
-  padding: 8px 4px;
+  padding: 0.5rem 0.25rem;
   margin-right: 16px;
+  font-weight: 500;
 }
 
 .tab.active {
-  color: var(--primary);
-  border-bottom-color: var(--primary);
+  color: var(--bs-primary);
+  border-bottom-color: var(--bs-primary);
+  font-weight: 600;
 }
 
 .form-grid {
@@ -288,7 +270,8 @@ button.small {
 
 .detail-list dt {
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--bs-body-color);
+  opacity: 0.75;
 }
 
 .detail-list dd {
@@ -305,41 +288,43 @@ button.small {
   display: flex;
   gap: 16px;
   padding: 12px 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--bs-border-color);
 }
 
 .timeline-date {
   width: 100px;
   flex-shrink: 0;
-  color: var(--text-muted);
-  font-size: 13px;
+  color: var(--bs-body-color);
+  opacity: 0.75;
+  font-size: 0.8125rem;
 }
 
 .timeline-type {
   text-transform: capitalize;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .muted {
-  color: var(--text-muted);
+  color: var(--bs-body-color);
+  opacity: 0.7;
 }
 
 .small {
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .error-text {
-  color: #b91c1c;
-  font-size: 13px;
+  color: var(--bs-danger);
+  font-size: 0.8125rem;
 }
 
 .notice {
-  background: #fffbeb;
-  border: 1px solid #fde68a;
-  color: #92400e;
-  border-radius: 6px;
-  padding: 8px 12px;
+  background: var(--bs-warning-bg-subtle);
+  border: 1px solid var(--bs-warning-border-subtle, #f7dcc4);
+  color: var(--bs-warning-text-emphasis);
+  border-radius: 0.325rem;
+  padding: 0.5rem 0.75rem;
   margin-bottom: 12px;
 }
 
@@ -351,21 +336,22 @@ button.small {
 }
 
 .stat-card {
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 20px;
+  background: var(--bs-card-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.325rem;
+  padding: 1.2rem;
 }
 
 .stat-value {
-  font-size: 32px;
+  font-size: 2rem;
   font-weight: 800;
-  color: var(--primary);
+  color: var(--bs-primary);
 }
 
 .stat-label {
-  color: var(--text-muted);
-  font-size: 13px;
+  color: var(--bs-body-color);
+  opacity: 0.75;
+  font-size: 0.8125rem;
   margin-top: 4px;
 }
 
@@ -377,9 +363,9 @@ button.small {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  background: var(--bs-card-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.325rem;
   padding: 12px 16px;
   margin-bottom: 12px;
 }

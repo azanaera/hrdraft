@@ -4,7 +4,7 @@ import { DEMO_USERS, apiGet, apiPost, createOrgUnit, loginAs, uniqueSuffix } fro
 test('an employee cannot see Admin/Reports/Onboarding/Hiring nav links', async ({ page }) => {
   await loginAs(page, DEMO_USERS.employee);
 
-  for (const label of ['Admin', 'Reports', 'Onboarding', 'Hiring (ATS)']) {
+  for (const label of ['Admin', 'Reports', 'Onboarding', 'Hiring']) {
     await expect(page.getByRole('link', { name: label })).toHaveCount(0);
   }
 });

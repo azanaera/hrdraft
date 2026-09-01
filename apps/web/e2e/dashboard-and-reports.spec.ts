@@ -6,7 +6,7 @@ test('dashboard reflects a new hire, and the turnover report reflects a terminat
 
   await page.goto('/');
   await expect(page.getByText('Active employees')).toBeVisible();
-  const headcountBefore = Number(await page.locator('.stat-card').first().locator('.stat-value').textContent());
+  const headcountBefore = Number(await page.locator('.card', { hasText: 'Active employees' }).locator('h3').textContent());
 
   const suffix = uniqueSuffix();
   const org = await createOrgUnit(page, suffix);
@@ -18,7 +18,7 @@ test('dashboard reflects a new hire, and the turnover report reflects a terminat
   });
 
   await page.reload();
-  const headcountAfter = Number(await page.locator('.stat-card').first().locator('.stat-value').textContent());
+  const headcountAfter = Number(await page.locator('.card', { hasText: 'Active employees' }).locator('h3').textContent());
   expect(headcountAfter).toBe(headcountBefore + 1);
   await expect(page.getByRole('link', { name: new RegExp(`Dash Board-${suffix}`) })).toBeVisible();
 

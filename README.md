@@ -114,6 +114,10 @@ npm run test:regression   # one command: Pest → Vitest → Playwright, see doc
 - **`employee_events`** is a single, append-only timeline table that every module writes into (hires, transfers, comp changes, notes, document uploads, time-off decisions), so an employee's whole history reads as one chronological feed.
 - **ATS is intentionally decoupled**: `App\Domain\ATS\Services\HireCandidateService` is the *only* code path that writes ATS data into core employee records. If a third-party ATS replaces this module later, only that one integration point needs to change.
 
+## Web UI design
+
+The web app's look now comes from **Hando**, a Bootstrap 5 admin template — see [docs/HANDO_TEMPLATE.md](docs/HANDO_TEMPLATE.md) for what's wired in, how the app shell (`Layout.tsx`)/login/dashboard were rebuilt on real Hando markup, and how the other ~28 pages get the same colors/type/components through a CSS compat layer instead of a full rewrite.
+
 ## Testing & regression
 
 See [docs/TEST_PLAN.md](docs/TEST_PLAN.md) for the full breakdown of what's covered, how to run each layer individually, and the process to follow on every future change (run `npm run test:regression` before and after, add a test for every new feature or fix). Short version:

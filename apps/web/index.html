@@ -4,9 +4,32 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>HRIS</title>
+    <link rel="shortcut icon" href="/hando/assets/images/favicon.ico" />
+
+    <!-- Hando admin template — see docs/HANDO_TEMPLATE.md -->
+    <link href="/hando/assets/css/app.min.css" rel="stylesheet" type="text/css" id="app-style" />
+    <link href="/hando/assets/css/icons.min.css" rel="stylesheet" type="text/css" />
+    <script src="/hando/assets/js/head.js"></script>
   </head>
-  <body>
+  <body data-menu-color="light" data-sidebar="default">
     <div id="root"></div>
+
+    <!-- Hando vendor scripts — loaded before the app so window.jQuery/bootstrap/feather
+         are ready by the time React components call them in effects. -->
+    <script src="/hando/assets/libs/jquery/jquery.min.js"></script>
+    <script src="/hando/assets/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="/hando/assets/libs/simplebar/simplebar.min.js"></script>
+    <script src="/hando/assets/libs/node-waves/waves.min.js"></script>
+    <script src="/hando/assets/libs/waypoints/lib/jquery.waypoints.min.js"></script>
+    <script src="/hando/assets/libs/jquery.counterup/jquery.counterup.min.js"></script>
+    <script src="/hando/assets/libs/feather-icons/feather.min.js"></script>
+    <!-- Hando's own app.js is NOT loaded: its init() runs synchronously at
+         parse time, before React has mounted the sidebar/topbar it queries
+         for — see docs/HANDO_TEMPLATE.md. The pieces that matter (feather
+         icon replacement, sidebar toggle) are reimplemented in Layout.tsx;
+         Bootstrap's own dropdown/collapse data-api uses delegated document
+         listeners and needs no re-init. -->
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -30,31 +30,89 @@ export function LoginPage() {
   }
 
   return (
-    <div className="center-screen">
-      <form className="card login-card" onSubmit={handleSubmit}>
-        <h1>HRIS</h1>
-        <p className="muted">Sign in to continue</p>
-        <label>
-          Email
-          <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required />
-        </label>
-        <label>
-          Password
-          <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" required />
-        </label>
-        {error && <div className="error-text">{error}</div>}
-        <button type="submit" disabled={submitting}>
-          {submitting ? 'Signing in…' : 'Sign in'}
-        </button>
-        <p className="muted small">
-          <Link to="/forgot-password">Forgot password?</Link>
-        </p>
-        <p className="muted small">
-          Demo: admin@example.com / hr.manager@example.com / people.manager@example.com / casey.nguyen@example.com
-          <br />
-          password: <code>password</code>
-        </p>
-      </form>
+    <div className="account-page">
+      <div className="container-fluid p-0">
+        <div className="row align-items-center justify-content-center g-0 px-3 py-3 vh-100">
+          <div className="col-xl-4">
+            <div className="row">
+              <div className="col-md-9 mx-auto">
+                <div className="card">
+                  <div className="card-body p-lg-4">
+                    <div className="mb-4 text-center">
+                      <h1 className="fs-24 fw-semibold text-dark mb-0">HRIS</h1>
+                    </div>
+
+                    <div className="auth-title-section mb-4 text-center">
+                      <h3 className="text-dark fw-semibold mb-2 fs-20">Welcome back</h3>
+                      <p className="text-muted fs-14 mb-0">Sign in to continue</p>
+                    </div>
+
+                    <form onSubmit={handleSubmit}>
+                      <div className="form-group mb-3">
+                        <label htmlFor="email" className="form-label">
+                          Email
+                        </label>
+                        <input
+                          id="email"
+                          className="form-control"
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      <div className="form-group mb-3">
+                        <label htmlFor="password" className="form-label">
+                          Password
+                        </label>
+                        <input
+                          id="password"
+                          className="form-control"
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                        />
+                      </div>
+
+                      {error && (
+                        <div className="alert alert-danger fs-14 py-2" role="alert">
+                          {error}
+                        </div>
+                      )}
+
+                      <div className="form-group mb-0">
+                        <div className="d-grid">
+                          <button className="btn btn-primary fw-semibold" type="submit" disabled={submitting}>
+                            {submitting ? 'Signing in…' : 'Sign in'}
+                          </button>
+                        </div>
+                      </div>
+                    </form>
+
+                    <div className="text-center mt-3">
+                      <Link to="/forgot-password" className="text-muted fs-14">
+                        Forgot password?
+                      </Link>
+                    </div>
+
+                    <div className="text-center text-muted mt-4 pt-2 border-top fs-13">
+                      <p className="mb-1 mt-3">
+                        Demo: admin@example.com &middot; hr.manager@example.com &middot; people.manager@example.com &middot;
+                        casey.nguyen@example.com
+                      </p>
+                      <p className="mb-0">
+                        password: <code>password</code>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

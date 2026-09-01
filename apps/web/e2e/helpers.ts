@@ -13,16 +13,17 @@ export async function loginAs(page: Page, email: string, password = DEMO_PASSWOR
   // LoginPage redirects an already-authenticated session straight back to
   // "/" before the form ever renders (client-side, after goto() resolves —
   // so checking page.url() right after goto('/login') races the redirect).
-  // Checking for a currently-visible "Log out" button on whatever page
-  // we're already on, before navigating, avoids that race entirely.
+  // Checking for the account-menu toggle (always visible once logged in —
+  // unlike "Log out", which lives inside its Bootstrap dropdown and is
+  // display:none until that toggle is opened) on whatever page we're
+  // already on, before navigating, avoids that race entirely.
   const alreadyLoggedIn = await page
-    .getByRole('button', { name: 'Log out' })
+    .getByRole('button', { name: 'Account menu' })
     .isVisible()
     .catch(() => false);
 
   if (alreadyLoggedIn) {
-    await page.getByRole('button', { name: 'Log out' }).click();
-    await page.waitForURL(/\/login/);
+    await logout(page);
   } else {
     await page.goto('/login');
   }
@@ -30,12 +31,13 @@ export async function loginAs(page: Page, email: string, password = DEMO_PASSWOR
   await page.getByLabel('Email').fill(email);
   await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Sign in' }).click();
-  await expect(page.getByRole('button', { name: 'Log out' })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole('button', { name: 'Account menu' })).toBeVisible({ timeout: 10_000 });
 }
 
 export async function logout(page: Page) {
+  await page.getByRole('button', { name: 'Account menu' }).click();
   await page.getByRole('button', { name: 'Log out' }).click();
-  await expect(page).toHaveURL(/\/login/);
+  await page.waitForURL(/\/login/);
 }
 
 /** A short random suffix so repeated test runs against the same seeded DB don't collide on unique fields. */
