@@ -3,7 +3,17 @@ import { DEMO_USERS, loginAs, logout } from './helpers';
 
 async function submitQuickRequest(page: import('@playwright/test').Page) {
   await page.goto('/time-off');
-  await page.locator('select').first().selectOption({ index: 1 });
+  // The policy <select> starts with just its "Select…" placeholder option —
+  // real policies load asynchronously after this navigation. On a slower
+  // runner (CI) selecting index 1 before that fetch resolves either throws
+  // (option doesn't exist yet) or silently no-ops the whole submission, so
+  // the row count assertion after this helper returns stays flaky without
+  // this wait. Wait for a second real option to actually exist first.
+  const policySelect = page.locator('select').first();
+  await expect(async () => {
+    expect(await policySelect.locator('option').count()).toBeGreaterThan(1);
+  }).toPass({ timeout: 10_000 });
+  await policySelect.selectOption({ index: 1 });
   await page.getByRole('button', { name: 'Request time off' }).click();
 }
 
