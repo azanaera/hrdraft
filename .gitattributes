@@ -1,0 +1,4 @@
+# Shell scripts run inside a Linux container (see Dockerfile) — CRLF line
+# endings would break the shebang at build time ("bad interpreter" error).
+# Force LF regardless of the checking-out platform's core.autocrlf setting.
+*.sh text eol=lf

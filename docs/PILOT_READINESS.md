@@ -10,7 +10,7 @@ Single-tenant, open-ended timeline (no fixed deadline, but treated with real urg
 
 | Item | Decision | Status |
 |---|---|---|
-| Hosting | Managed PaaS + managed Postgres | **Not started** — needs an account/platform choice, not something to do unilaterally |
+| Hosting | Managed PaaS + managed Postgres — Render recommended, starting from scratch | ✅ Packaged, not deployed — `Dockerfile`, `docker/nginx.conf`, `docker/entrypoint.sh`, `render.yaml` (Blueprint: web service + Postgres + accrual cron job). See [DEPLOYMENT.md](DEPLOYMENT.md). **Not build-tested** — Docker isn't available in the dev environment this was written in. |
 | Time-off accrual | Build the real scheduled job before pilot | ✅ Built — `TimeOffAccrualService`, `time-off:accrue` Artisan command, scheduled daily in `routes/console.php`. 7 Pest tests. |
 | Document storage | Enable S3 before pilot | **Ready, not enabled** — disk is pre-wired (`config/filesystems.php`); just needs real `AWS_*` env vars once a bucket exists |
 | Error monitoring | Add basic tracking (Sentry) before going live | ✅ Wired — `sentry/sentry-laravel` installed, config is a no-op until `SENTRY_LARAVEL_DSN` is set in `.env` |
@@ -33,15 +33,16 @@ Both are fast-follow items — swap in a real provider (DocuSign/Dropbox Sign; C
 
 ## What still needs a human, not more code
 
-These require an account, a purchase, or a judgment call outside engineering — I won't do these unilaterally:
+These require an account, a purchase, or a judgment call outside engineering — I won't do these unilaterally. Follow [DEPLOYMENT.md](DEPLOYMENT.md) for the concrete steps:
 
-1. **Pick and set up the PaaS + managed Postgres.** Everything else (S3, backups, `.env` production values, `SANCTUM_STATEFUL_DOMAINS`/`FRONTEND_URL` for the real domain) flows from this choice.
-2. **Create an S3 bucket** and drop the real `AWS_*` credentials into production `.env` — the code side is already done.
-3. **Create a Sentry account** (or pick an alternative) and set `SENTRY_LARAVEL_DSN` — the code side is already done.
-4. **Push this repo to a GitHub remote** so `.github/workflows/regression.yml` actually runs.
-5. **Set up nightly `pg_dump` on the chosen hosting platform**, and do one restore drill before pilot go-live.
-6. **Decide who the pilot cohort is** and run the mixed data-migration approach (a few via CSV import, rest via Hire UI).
-7. **Brief HR on the two compliance caveats** above (I-9 stays paper, background checks stay parallel) — the UI now says this, but a real conversation matters more than a banner.
+1. **Build and smoke-test the Docker image locally** before trusting it — it's written but not build-verified (no Docker available in the dev environment).
+2. **Push this repo to a GitHub remote**, then connect it to Render as a Blueprint (`render.yaml` provisions the web service, database, and cron job together).
+3. **Create an S3 bucket + scoped IAM user**, drop the credentials into Render's env vars — `FILESYSTEM_DISK=s3` is already set in `render.yaml`.
+4. **Create a Sentry account** (optional) and set `SENTRY_LARAVEL_DSN` — the code side is already done.
+5. **Confirm the managed Postgres plan includes backups**, and do one restore drill before pilot go-live — don't trust a backup that's never been restored.
+6. **Run `php artisan hris:create-admin`** once, right after first deploy, to create the one real admin account — never run `DemoDataSeeder` anywhere real employees will log in.
+7. **Decide who the pilot cohort is** and run the mixed data-migration approach (a few via CSV import, rest via Hire UI).
+8. **Brief HR on the two compliance caveats** above (I-9 stays paper, background checks stay parallel) — the UI now says this, but a real conversation matters more than a banner.
 
 ## Explicitly out of scope for this pilot (revisit before any move to full production)
 

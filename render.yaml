@@ -1,0 +1,98 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# Deploys the whole stack from one repo: the web service (nginx + php-fpm,
+# serving both the API and the built React app, see Dockerfile) plus a
+# managed Postgres database and a daily cron job for time-off accrual.
+#
+# First deploy: connect this repo in the Render dashboard as a Blueprint.
+# Values marked `sync: false` are prompted for at that point, or set
+# afterward in the dashboard — they're deliberately not filled in here
+# (real domain, AWS/S3 credentials, Sentry DSN aren't known until then).
+# See docs/DEPLOYMENT.md for the full walkthrough.
+
+databases:
+  - name: hris-db
+    plan: starter
+    postgresMajorVersion: 16
+
+services:
+  - type: web
+    name: hris
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /up
+    envVars: &appEnv
+      - key: APP_NAME
+        value: HRIS
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_KEY
+        generateValue: true
+      # Set once the real Render URL (or custom domain) is known — see
+      # docs/DEPLOYMENT.md. All four need the same host.
+      - key: APP_URL
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: SANCTUM_STATEFUL_DOMAINS
+        sync: false
+      - key: SESSION_DOMAIN
+        sync: false
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase:
+          name: hris-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: hris-db
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: hris-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: hris-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: hris-db
+          property: password
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: MAIL_MAILER
+        value: log
+      - key: FILESYSTEM_DISK
+        value: s3
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_DEFAULT_REGION
+        value: us-east-1
+      - key: AWS_BUCKET
+        sync: false
+      # Leave blank until a Sentry project exists — the app runs fine
+      # without it (see apps/api/config/sentry.php).
+      - key: SENTRY_LARAVEL_DSN
+        sync: false
+
+  - type: cron
+    name: hris-accrue-time-off
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    schedule: "0 6 * * *"
+    dockerCommand: php artisan time-off:accrue
+    envVars: *appEnv

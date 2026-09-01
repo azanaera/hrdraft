@@ -1,0 +1,14 @@
+node_modules
+apps/*/node_modules
+packages/*/node_modules
+apps/api/vendor
+apps/web/dist
+apps/web/test-results
+apps/web/playwright-report
+.env
+.env.*
+!.env.example
+.git
+.github
+apps/api/storage/logs/*
+!apps/api/storage/logs/.gitkeep
